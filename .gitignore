@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment variables
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+tests/fixtures/sample.*
+
+# LocalStack
+localstack-data/
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/*.tfvars
+terraform/.terraform.lock.hcl
+terraform/plan.out
+
+# Deployment
+deployment-outputs.json
+
+# Docker
+docker/*.tar
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Lambda packages
+*.zip
+
+# Runtime artifacts
+errors.csv

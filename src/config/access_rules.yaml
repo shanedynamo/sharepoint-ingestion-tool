@@ -1,0 +1,47 @@
+# Access control rules for the RAG pipeline.
+#
+# Each rule maps a SharePoint library name pattern to a list of access tags.
+# Tags determine which user roles can see these documents in search results.
+#
+# Rules are evaluated top-to-bottom, first match wins (except the wildcard
+# "*" rule, which is always appended to provide a baseline).
+#
+# Pattern syntax: fnmatch-style (*, ?, [seq]).
+
+rules:
+  - library_pattern: "HR*"
+    access_tags: ["hr", "leadership", "admin"]
+    description: "HR documents restricted to HR team"
+
+  - library_pattern: "Finance*"
+    access_tags: ["finance", "leadership", "admin"]
+    description: "Financial documents"
+
+  - library_pattern: "BD*"
+    access_tags: ["bd", "capture", "leadership", "admin"]
+    description: "Business development library"
+
+  - library_pattern: "Engineering*"
+    access_tags: ["engineering", "tech-leads", "admin"]
+    description: "Engineering documentation"
+
+  - library_pattern: "Contracts*"
+    access_tags: ["contracts", "leadership", "admin"]
+    description: "Contract files"
+
+  - library_pattern: "*"
+    access_tags: ["all-staff"]
+    description: "Default: accessible to all staff"
+
+# Role-to-tag mapping for the RAG query layer.
+# Each role grants access to documents tagged with any of the listed tags.
+role_mappings:
+  admin: ["*"]
+  leadership: ["leadership", "all-staff"]
+  hr: ["hr", "all-staff"]
+  finance: ["finance", "all-staff"]
+  engineer: ["engineering", "all-staff"]
+  tech-lead: ["engineering", "tech-leads", "all-staff"]
+  bd: ["bd", "capture", "all-staff"]
+  contracts: ["contracts", "all-staff"]
+  staff: ["all-staff"]
