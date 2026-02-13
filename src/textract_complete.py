@@ -90,7 +90,7 @@ def handler(event: dict, context: object) -> dict:
             for tag_key in ("sp_library", "sp_path", "sp_item_id"):
                 val = doc.get(tag_key, "")
                 if val:
-                    source_tags[tag_key.replace("_", "-")] = val
+                    source_tags[tag_key.replace("_", "-")] = PathMapper._sanitize_tag_value(val)
 
             s3.upload_json_twin(twin, twin_key, tags=source_tags)
 

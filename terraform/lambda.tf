@@ -30,7 +30,7 @@ resource "aws_lambda_function" "daily_sync" {
 
   environment {
     variables = {
-      PYTHONPATH             = "/var/task/src"
+      PYTHONPATH             = "/var/task/src:/opt/python"
       SHAREPOINT_SITE_NAME   = var.sharepoint_site_name
       EXCLUDED_FOLDERS       = var.excluded_folders
       S3_BUCKET              = var.s3_bucket_name
@@ -65,7 +65,7 @@ resource "aws_lambda_function" "textract_trigger" {
 
   environment {
     variables = {
-      PYTHONPATH              = "/var/task/src"
+      PYTHONPATH              = "/var/task/src:/opt/python"
       S3_BUCKET               = var.s3_bucket_name
       DYNAMODB_REGISTRY_TABLE = var.registry_table_name
       TEXTRACT_SNS_TOPIC_ARN  = aws_sns_topic.textract_notifications.arn
@@ -103,7 +103,7 @@ resource "aws_lambda_function" "textract_complete" {
 
   environment {
     variables = {
-      PYTHONPATH              = "/var/task/src"
+      PYTHONPATH              = "/var/task/src:/opt/python"
       S3_BUCKET               = var.s3_bucket_name
       DYNAMODB_REGISTRY_TABLE = var.registry_table_name
       LOG_LEVEL               = "INFO"

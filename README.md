@@ -31,6 +31,7 @@ SharePoint (Dynamo)
 | `delta_tracker.py` | Persists Graph API delta tokens in DynamoDB for incremental sync |
 | `document_registry.py` | Tracks every document through the ingest/extract/twin lifecycle |
 | `digital_twin.py` | Assembles structured JSON from Textract output + SharePoint metadata |
+| `utils/file_converter.py` | Routes file types to extraction strategies; extracts text from DOCX/PPTX/XLSX in Lambda |
 
 ## Three Pipelines
 
@@ -47,10 +48,15 @@ Flow: `SharePoint → Graph API → S3 (source/) → DynamoDB registry`
 
 Converts raw documents into structured text using AWS Textract.
 
-- **Textract trigger** (`textract_trigger.py`): Lambda triggered by S3 `ObjectCreated` events on the `source/` prefix. Starts an async Textract `StartDocumentAnalysis` job for each supported file (PDF, PNG, TIFF).
+- **Textract trigger** (`textract_trigger.py`): Lambda triggered by S3 `ObjectCreated` events on the `source/` prefix. Routes documents by type:
+  - **PDF** → async Textract `StartDocumentAnalysis`
+  - **DOCX** → direct text extraction via `python-docx`
+  - **PPTX** → direct text extraction via `python-pptx`
+  - **XLSX** → direct text extraction via `openpyxl`
+  - **TXT** → read as UTF-8 plain text
 - **Textract complete** (`textract_complete.py`): Lambda triggered by SNS when Textract finishes. Retrieves results and builds a JSON digital twin.
 
-Flow: `S3 event → Textract job → SNS notification → JSON twin → S3 (extracted/twins/)`
+Flow: `S3 event → Textract (PDF) or direct extract (Office) → JSON twin → S3 (extracted/twins/)`
 
 ### 3. Coordination Pipeline
 
@@ -67,7 +73,7 @@ Documents are deduplicated by SharePoint item ID and eTag — unchanged files ar
 - AWS account with Textract, S3, DynamoDB, Lambda, EventBridge, SNS access
 - Azure AD app registration with `Sites.Read.All` Graph API permission
 - Terraform >= 1.5
-- (Optional) LibreOffice for PPTX/XLSX → PDF conversion
+- (Optional) LibreOffice for legacy format conversion (.ppt, .xls, .doc) on EC2
 
 ## Local Setup
 

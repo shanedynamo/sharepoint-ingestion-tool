@@ -23,10 +23,11 @@ logger = logging.getLogger(__name__)
 # --------------------------------------------------------------------- #
 
 # Types that need conversion before Textract can process them.
-_NEEDS_CONVERSION = {".pptx", ".ppt", ".xlsx", ".xls"}
+_NEEDS_CONVERSION = {".pptx", ".ppt", ".xlsx", ".xls", ".docx", ".doc"}
 
 # Types that Textract handles natively (no conversion needed).
-_TEXTRACT_DIRECT = {".pdf", ".docx", ".doc"}
+# Note: Textract only supports PDF and images — NOT DOCX/DOC.
+_TEXTRACT_DIRECT = {".pdf"}
 
 # Plain-text types – no Textract needed at all.
 _PLAIN_TEXT = {".txt"}
@@ -156,14 +157,16 @@ class FileConverter:
             return _extract_pptx_text(content, filename)
         if ext == ".xlsx":
             return _extract_xlsx_text(content, filename)
-        if ext in (".ppt", ".xls"):
+        if ext == ".docx":
+            return _extract_docx_text(content, filename)
+        if ext in (".ppt", ".xls", ".doc"):
             raise ValueError(
                 f"Legacy format '{ext}' is not supported in Lambda mode. "
                 "Use convert_to_pdf (LibreOffice) on EC2 instead."
             )
         raise ValueError(
             f"File type '{ext}' is not supported for Lambda conversion. "
-            f"Supported: .pptx, .xlsx"
+            f"Supported: .pptx, .xlsx, .docx"
         )
 
 
@@ -188,6 +191,29 @@ def _safe_filename(filename: str, ext: str) -> str:
     # Remove characters problematic on most filesystems
     safe = "".join(c for c in stem if c.isalnum() or c in "-_ ")
     return f"{safe or 'document'}{ext}"
+
+
+def _extract_docx_text(content: bytes, filename: str) -> bytes:
+    """Extract all text from a DOCX file using python-docx."""
+    from docx import Document  # lazy import
+
+    doc = Document(io.BytesIO(content))
+    parts: list[str] = []
+
+    for para in doc.paragraphs:
+        text = para.text.strip()
+        if text:
+            parts.append(text)
+
+    for table in doc.tables:
+        for row in table.rows:
+            row_text = "\t".join(cell.text.strip() for cell in row.cells)
+            if row_text.strip():
+                parts.append(row_text)
+
+    text = "\n".join(parts)
+    logger.info("Extracted %d characters from DOCX: %s", len(text), filename)
+    return text.encode("utf-8")
 
 
 def _extract_pptx_text(content: bytes, filename: str) -> bytes:

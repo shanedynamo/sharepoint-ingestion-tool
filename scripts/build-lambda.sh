@@ -47,6 +47,7 @@ echo "[2/5] Installing layer dependencies..."
 LAYER_PKG_DIR="$BUILD_DIR/layer/python"
 mkdir -p "$LAYER_PKG_DIR"
 
+# Binary packages (with platform-specific wheels)
 $PIP install \
     --target "$LAYER_PKG_DIR" \
     --python-version 3.11 \
@@ -58,8 +59,17 @@ $PIP install \
     requests \
     python-pptx \
     openpyxl \
-    python-dotenv \
     pyyaml \
+    2>&1 | tail -5
+
+# Pure Python packages — install without deps to avoid overwriting
+# platform-specific binaries (e.g. lxml) already installed above.
+$PIP install \
+    --target "$LAYER_PKG_DIR" \
+    --upgrade \
+    --no-deps \
+    python-docx \
+    python-dotenv \
     2>&1 | tail -5
 
 # Remove unnecessary files to reduce layer size
