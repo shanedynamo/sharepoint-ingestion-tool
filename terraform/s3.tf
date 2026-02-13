@@ -31,6 +31,34 @@ resource "aws_s3_bucket_public_access_block" "documents" {
   restrict_public_buckets = true
 }
 
+# Allow Textract service to read source documents and write output.
+# Async Textract jobs access S3 using the service principal, not the caller.
+resource "aws_s3_bucket_policy" "textract_access" {
+  bucket = aws_s3_bucket.documents.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "TextractReadSource"
+        Effect    = "Allow"
+        Principal = { Service = "textract.amazonaws.com" }
+        Action    = "s3:GetObject"
+        Resource  = "${aws_s3_bucket.documents.arn}/source/*"
+      },
+      {
+        Sid       = "TextractWriteOutput"
+        Effect    = "Allow"
+        Principal = { Service = "textract.amazonaws.com" }
+        Action    = "s3:PutObject"
+        Resource  = "${aws_s3_bucket.documents.arn}/textract-raw/*"
+      },
+    ]
+  })
+
+  depends_on = [aws_s3_bucket_public_access_block.documents]
+}
+
 # ---------------------------------------------------------------------------
 # S3 event notifications — trigger Lambda on PutObject for supported types.
 # Each suffix filter requires its own notification configuration block.

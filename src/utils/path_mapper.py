@@ -164,6 +164,15 @@ class PathMapper:
     # ------------------------------------------------------------------
 
     @staticmethod
+    def _sanitize_tag_value(value: str) -> str:
+        """Sanitize a string for use as an S3 object tag value.
+
+        S3 tag values only allow: letters, digits, spaces, and + - = . _ : / @
+        All other characters are replaced with underscores.
+        """
+        return re.sub(r"[^\w\s+\-=.:/@]", "_", value)
+
+    @staticmethod
     def build_s3_tags(item: dict) -> dict[str, str]:
         """Build S3 object tags from a Graph API item dict.
 
@@ -174,23 +183,20 @@ class PathMapper:
             site_name, library_name, sharepoint_path, author,
             last_modified, content_type, file_type
         """
-        def _truncate(value: str) -> str:
-            if len(value) <= S3_TAG_VALUE_MAX:
-                return value
-            return value[: S3_TAG_VALUE_MAX - 3] + "..."
-
-        sp_path = item.get("sharepoint_path", "")
-        # URL-encode the path for safe storage as a tag value
-        encoded_path = quote(sp_path, safe="/")
+        def _clean(value: str) -> str:
+            sanitized = PathMapper._sanitize_tag_value(value)
+            if len(sanitized) <= S3_TAG_VALUE_MAX:
+                return sanitized
+            return sanitized[: S3_TAG_VALUE_MAX - 3] + "..."
 
         tags = {
-            "sp-site": _truncate(item.get("site_name", "")),
-            "sp-library": _truncate(item.get("library_name", "")),
-            "sp-path": _truncate(encoded_path),
-            "sp-author": _truncate(item.get("author", "")),
-            "sp-last-modified": _truncate(item.get("last_modified", "")),
-            "sp-content-type": _truncate(item.get("content_type", "")),
-            "file-type": _truncate(
+            "sp-site": _clean(item.get("site_name", "")),
+            "sp-library": _clean(item.get("library_name", "")),
+            "sp-path": _clean(item.get("sharepoint_path", "")),
+            "sp-author": _clean(item.get("author", "")),
+            "sp-last-modified": _clean(item.get("last_modified", "")),
+            "sp-content-type": _clean(item.get("content_type", "")),
+            "file-type": _clean(
                 item.get("file_type", "").lstrip(".")
             ),
         }

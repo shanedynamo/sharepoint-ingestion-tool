@@ -59,6 +59,7 @@ $PIP install \
     python-pptx \
     openpyxl \
     python-dotenv \
+    pyyaml \
     2>&1 | tail -5
 
 # Remove unnecessary files to reduce layer size

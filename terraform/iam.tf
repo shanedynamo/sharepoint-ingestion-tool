@@ -32,6 +32,7 @@ resource "aws_iam_role_policy" "bulk_ec2" {
         Effect = "Allow"
         Action = [
           "s3:PutObject",
+          "s3:PutObjectTagging",
           "s3:GetObject",
           "s3:DeleteObject",
           "s3:ListBucket",
@@ -191,31 +192,20 @@ resource "aws_iam_role_policy" "textract_trigger_lambda" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid    = "S3ReadSource"
+        Sid    = "S3FullAccess"
         Effect = "Allow"
         Action = [
           "s3:GetObject",
           "s3:HeadObject",
-        ]
-        Resource = "${aws_s3_bucket.documents.arn}/source/*"
-      },
-      {
-        Sid    = "S3WriteExtracted"
-        Effect = "Allow"
-        Action = [
           "s3:PutObject",
           "s3:PutObjectTagging",
-        ]
-        Resource = "${aws_s3_bucket.documents.arn}/extracted/*"
-      },
-      {
-        Sid    = "S3BucketLevel"
-        Effect = "Allow"
-        Action = [
           "s3:HeadBucket",
           "s3:ListBucket",
         ]
-        Resource = aws_s3_bucket.documents.arn
+        Resource = [
+          aws_s3_bucket.documents.arn,
+          "${aws_s3_bucket.documents.arn}/*",
+        ]
       },
       {
         Sid    = "DynamoDBRegistry"
@@ -241,6 +231,12 @@ resource "aws_iam_role_policy" "textract_trigger_lambda" {
         Effect = "Allow"
         Action = "sns:Publish"
         Resource = aws_sns_topic.textract_notifications.arn
+      },
+      {
+        Sid    = "PassTextractServiceRole"
+        Effect = "Allow"
+        Action = "iam:PassRole"
+        Resource = aws_iam_role.textract_service.arn
       },
     ]
   })
@@ -286,31 +282,21 @@ resource "aws_iam_role_policy" "textract_complete_lambda" {
         Resource = "*"
       },
       {
-        Sid    = "S3ReadSource"
+        Sid    = "S3FullAccess"
         Effect = "Allow"
         Action = [
           "s3:GetObject",
           "s3:GetObjectTagging",
           "s3:HeadObject",
-        ]
-        Resource = "${aws_s3_bucket.documents.arn}/source/*"
-      },
-      {
-        Sid    = "S3WriteExtracted"
-        Effect = "Allow"
-        Action = [
           "s3:PutObject",
           "s3:PutObjectTagging",
-        ]
-        Resource = "${aws_s3_bucket.documents.arn}/extracted/*"
-      },
-      {
-        Sid    = "S3BucketLevel"
-        Effect = "Allow"
-        Action = [
           "s3:HeadBucket",
+          "s3:ListBucket",
         ]
-        Resource = aws_s3_bucket.documents.arn
+        Resource = [
+          aws_s3_bucket.documents.arn,
+          "${aws_s3_bucket.documents.arn}/*",
+        ]
       },
       {
         Sid    = "DynamoDBRegistry"
@@ -344,16 +330,34 @@ resource "aws_iam_role" "textract_service" {
 }
 
 resource "aws_iam_role_policy" "textract_service" {
-  name = "sp-ingest-textract-sns-publish"
+  name = "sp-ingest-textract-service-policy"
   role = aws_iam_role.textract_service.id
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Sid      = "SNSPublish"
-      Effect   = "Allow"
-      Action   = "sns:Publish"
-      Resource = aws_sns_topic.textract_notifications.arn
-    }]
+    Statement = [
+      {
+        Sid      = "SNSPublish"
+        Effect   = "Allow"
+        Action   = "sns:Publish"
+        Resource = aws_sns_topic.textract_notifications.arn
+      },
+      {
+        Sid    = "S3ReadSource"
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+        ]
+        Resource = "${aws_s3_bucket.documents.arn}/source/*"
+      },
+      {
+        Sid    = "S3WriteOutput"
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+        ]
+        Resource = "${aws_s3_bucket.documents.arn}/textract-raw/*"
+      },
+    ]
   })
 }

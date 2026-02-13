@@ -2,9 +2,12 @@
 
 import os
 from dataclasses import dataclass, field
-from dotenv import load_dotenv
 
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # dotenv not needed in Lambda — env vars set by Terraform
 
 
 @dataclass(frozen=True)
